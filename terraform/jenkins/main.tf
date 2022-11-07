@@ -66,13 +66,25 @@ resource "aws_security_group" "jenkins_sg" {
 }
 
 resource "aws_key_pair" "jenkins_auth" {
-  key_name   = "jenkins"
-  public_key = file("~/.ssh/jenkins.pub")
+  key_name   = "jenkins_auth"
+  public_key = tls_private_key.rsa.public_key_openssh
 }
+
+# RSA key of size 4096 bits
+resource "tls_private_key" "rsa" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "local_file" "jenkins_auth" {
+    content  =  tls_private_key.rsa.private_key_pem
+    filename = "jenkins_auth"
+}
+
 resource "aws_instance" "jenkins_ec2" {
   ami                    = data.aws_ami.jenkins_ami.id
   instance_type          = "t2.micro"
-  key_name               = aws_key_pair.jenkins_auth.id
+  key_name               = "jenkins_auth"
   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
   subnet_id              = aws_subnet.jenkins_subnet.id
 

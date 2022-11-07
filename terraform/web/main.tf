@@ -57,6 +57,22 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+  ingress {
+    description = "HTTPS"
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -66,13 +82,25 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_key_pair" "web_auth" {
-  key_name   = "web"
-  public_key = file("~/.ssh/web.pub")
+  key_name   = "web_auth"
+  public_key = tls_private_key.rsa.public_key_openssh
 }
+
+# RSA key of size 4096 bits
+resource "tls_private_key" "rsa" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "local_file" "web_auth" {
+    content  =  tls_private_key.rsa.private_key_pem
+    filename = "web_auth"
+}
+
 resource "aws_instance" "web_ec2" {
   ami                    = data.aws_ami.web_ami.id
   instance_type          = "t2.micro"
-  key_name               = aws_key_pair.web_auth.id
+  key_name               = "web_auth"
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   subnet_id              = aws_subnet.web_subnet.id
 

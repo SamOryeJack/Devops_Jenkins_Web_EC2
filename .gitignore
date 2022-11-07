@@ -1,3 +1,6 @@
+web_auth
+jenkins_auth
+.DS_Store
 # Local .terraform directories
 **/.terraform/*
 
